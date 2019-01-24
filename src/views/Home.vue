@@ -28,7 +28,7 @@
 </template>
 
 <script>
-    import {Button, Row, Col, Input, DatePicker, MessageBox} from 'element-ui'
+    import {Button, Input, DatePicker, MessageBox} from 'element-ui'
     import {register, setOvertime, surplus} from "../api";
 
     export default {
@@ -71,11 +71,8 @@
         },
         components: {
             ElButton: Button,
-            ElRow: Row,
-            ElCol: Col,
             ElInput: Input,
-            ElDatePicker: DatePicker,
-            MessageBox
+            ElDatePicker: DatePicker
         },
         created() {
             if (!this.registered) {

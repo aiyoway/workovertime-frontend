@@ -66,7 +66,7 @@
         },
         computed: {
             registered: () => {
-                return Boolean(localStorage.getItem('user'));
+                return Boolean(localStorage.getItem('token'));
             }
         },
         components: {
@@ -83,7 +83,7 @@
                             inputErrorMessage: '亲，用户名长度要在1~20个字符内'
                         });
                         let res = await register({user: val.value});
-                        localStorage.setItem('user', res.data.user);
+                        localStorage.setItem('token', res.data.token);
                         location.reload();
                     } catch (e) {
                         if (e.response) {

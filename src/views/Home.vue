@@ -11,19 +11,24 @@
                     placeholder="选择加班日期"
                     :picker-options="pickerOptions">
             </el-date-picker>
-            <el-input style="width: 18%;margin: 0 10px;" v-model="hours" placeholder="请输入小时数" type="number" max="12"
-                      min="1">
+            <el-input class="input-num" v-model="hours" placeholder="请输入小时数" type="number" max="12" min="1">
                 <template slot="append">小时</template>
             </el-input>
-            <el-button type="primary" @click="overtimes(hours)" :disabled="!showDialog">提交</el-button>
+            <el-button type="primary" @click="overtimes(hours)" :disabled="isGuest">提 交</el-button>
         </div>
         <div style="margin: 30px 0;">
-            <el-button @click="overtimes(2)" :disabled="!showDialog">提交2小时</el-button>
-            <el-button @click="overtimes(3)" :disabled="!showDialog">提交3小时</el-button>
-            <el-button @click="overtimes(4)" :disabled="!showDialog">提交4小时</el-button>
-            <el-button @click="overtimes(8)" :disabled="!showDialog">提交8小时</el-button>
-            <el-button @click="overtimes(8)" :disabled="!showDialog">提交8小时</el-button>
+            <el-button v-for="(s,k) in quickSubmits" :key="k" @click="overtimes(s)" :disabled="isGuest">提交{{s}}小时
+            </el-button>
         </div>
+
+        <div style="border-bottom: #f5f7fa 3px solid;margin: 40px 0;"></div>
+        <el-input class="input-num" v-model="hours" placeholder="请输入小时数" type="number" max="12" min="1">
+            <template slot="append">小时</template>
+        </el-input>
+        <el-button type="primary" @click="verification(hours)" :disabled="isGuest">核 销</el-button>
+        <el-button v-for="(s,k) in [2,4,8]" :key="k" @click="verification(s)" :disabled="isGuest">核销{{s}}小时
+        </el-button>
+
         <el-dialog :visible.sync="showDialog" width="40%">
             <div class="el-form-item">
                 <el-input v-model="user" placeholder="用户名" maxlength="20" minlength="1"></el-input>
@@ -32,8 +37,8 @@
                 <el-input v-model="pwd" placeholder="密码，非必填" maxlength="20"></el-input>
             </div>
             <div slot="footer" class="dialog-footer">
-                <el-button @click="getToken">注 册</el-button>
-                <el-button type="primary" @click="showDialog = false">登 录</el-button>
+                <el-button @click="getToken('register')">注 册</el-button>
+                <el-button type="primary" @click="getToken('login')">登 录</el-button>
             </div>
         </el-dialog>
     </div>
@@ -41,7 +46,7 @@
 
 <script>
     import {Button, Input, DatePicker, MessageBox, Dialog} from 'element-ui'
-    import {register, setOvertime, surplus} from "../api";
+    import {auth, setOvertime, surplus} from "../api";
 
     export default {
         name: 'home',
@@ -50,10 +55,12 @@
                 user: '',
                 pwd: '',
                 hours: 1,
+                verificationHours: 0,
                 date: new Date(),
                 showDialog: false,
                 lastMonthSurplus: 0,
                 thisMonthSurplus: 0,
+                quickSubmits: [2, 3, 4, 8],
                 pickerOptions: {
                     disabledDate(time) {
                         let date = new Date();
@@ -93,31 +100,21 @@
         created() {
             if (!localStorage.getItem('token')) {
                 this.showDialog = true;
-                // (async () => {
-                //     try {
-                //         let val = await MessageBox.prompt('您还没有注册，给自己整一个代号吧', {
-                //             inputPattern: /^.{1,20}$/,
-                //             inputErrorMessage: '亲，用户名长度要在1~20个字符内'
-                //         });
-                //         let res = await register({user: val.value});
-                //         localStorage.setItem('token', res.data.token);
-                //         location.reload();
-                //     } catch (e) {
-                //         if (e.response) {
-                //             MessageBox.alert(e.response.data.msg).then(() => location.reload());
-                //             console.error(e.response.data.msg)
-                //         }
-                //     }
-                // })()
             } else {
                 this.getSurplus();
             }
         },
         methods: {
-            async getToken() {
+            async getToken(option) {
                 try {
-                    let res = await register({user: this.user, password: this.pwa});
+                    let params = {user: this.user, password: this.pwd};
+                    if (this.pwd === '' && option === 'register') {
+                        delete params.password;
+                    }
+                    let res = await auth(params, option);
                     localStorage.setItem('token', res.data.token);
+                    this.showDialog = false;
+                    this.getSurplus();
                 } catch (e) {
                     if (e.response) {
                         MessageBox.alert(e.response.data.msg);
@@ -127,7 +124,10 @@
             },
             async overtimes(hours) {
                 try {
-                    await setOvertime({hours});
+                    await setOvertime({
+                        hours,
+                        timestamp: this.date.getTime() / 1000
+                    });
                     this.getSurplus();
                 } catch (e) {
                     console.error(e)
@@ -137,6 +137,10 @@
                 let res = await surplus();
                 this.lastMonthSurplus = res.lastMonthSurplus;
                 this.thisMonthSurplus = res.thisMonthSurplus
+            },
+            verification(hours) {
+                if (!hours) return;
+                this.overtimes(-hours)
             }
         }
     }
@@ -153,5 +157,10 @@
     .primary-text {
         color: #606266;
         text-align: center;
+    }
+
+    .input-num {
+        width: 18% !important;
+        margin: 0 10px;
     }
 </style>

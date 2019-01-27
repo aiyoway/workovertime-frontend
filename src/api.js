@@ -2,20 +2,16 @@ import axios from 'axios';
 import qs from 'qs'
 
 const BaseUrl = 'http://localhost:8000';
-const user = {
-    user: localStorage.getItem('user')
-};
 
 
 const baseApi = async (url, params, method) => {
-    params = {
-        ...params,
-        ...user
-    };
     let options = {
         url: url,
         method: method,
         baseURL: BaseUrl,
+        headers: {
+            Authorization: localStorage.getItem('token')
+        }
     };
     if (method === 'get') {
         options = {
@@ -28,7 +24,6 @@ const baseApi = async (url, params, method) => {
             ...options
         }
     }
-    console.log(params);
     try {
         const res = await axios.request(options);
         return res.data;
@@ -37,9 +32,9 @@ const baseApi = async (url, params, method) => {
     }
 };
 
-const register = params => {
+const auth = (params, path) => {
     params = qs.stringify(params);
-    return axios.post('register', params, {
+    return axios.post(path, params, {
         baseURL: BaseUrl
     })
 };
@@ -52,4 +47,4 @@ const surplus = () => {
     return baseApi('surplus', [], 'get')
 };
 
-export {register, setOvertime, surplus}
+export {auth, setOvertime, surplus}
